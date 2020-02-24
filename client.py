@@ -119,7 +119,7 @@ class Menu(Screen, Server):
         self.ip = self.ids.tip.text
         self.port = int(self.ids.tport.text)
         self.server.connect((self.ip, self.port))
-        # self.server.send('1'.encode('utf-8'))
+        # self.server.send('1'.encode('utf-8')))))
         sm.current = 'myapp'
         color = tuple([float(i) for i in self.ids.tcolor.text.split(' ')] + [1])
 
