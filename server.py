@@ -16,10 +16,15 @@ def clientthread(client):
             message = get_message(client)
 
             if message:
-                message_to_send = f'<{client.addr[0]}> | Buzzed by {client.house}'
-                print(message_to_send)
-                # Send name of buzzed house to master client
+                print(f'<{client.addr[0]}> | Buzzed by {client.house}')
                 client.broadcast()
+                # For now its a sleep
+                # Ideally the quiz master will control when the next wuestion is shown
+                time.sleep(2)
+                print('Next question')
+                client.broadcast()
+                # Send name of buzzed house to master client
+
         except:
             print(f'<{client.addr[0]} | {client.house}> has been removed.')
             remove(client)

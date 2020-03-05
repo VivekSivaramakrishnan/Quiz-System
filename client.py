@@ -3,7 +3,7 @@ import socket
 import sys
 import details
 
-from server import get_message
+from _thread import start_new_thread
 
 import kivy
 from kivy.app import App
@@ -11,7 +11,6 @@ from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.gridlayout import GridLayout
-from kivy.lang import Builder
 from kivy.uix.screenmanager import ScreenManager, Screen
 
 
@@ -27,9 +26,9 @@ class Main(App):
         return sm
 
 
-class Server():
+class Client():
 
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     ip = details.ip
     port = str(details.port)
 
@@ -50,7 +49,7 @@ class Intro(GridLayout):
         sm.current = 'menu'
 
 
-class Menu(GridLayout, Server):
+class Menu(GridLayout, Client):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -89,15 +88,16 @@ class Menu(GridLayout, Server):
         self.ip = self.ipin.text
         self.port = int(self.portin.text)
         try:
-            self.server.connect((self.ip, self.port))
-            # self.server.send('1'.encode('utf-8')))))
+            self.client.connect((self.ip, self.port))
+            self.connected = True
+            # self.client.send('1'.encode('utf-8')))))
             sm.current = 'myapp'
         except Exception as e:
             self.err.text = str(e)
         color_change()
 
 
-class MyApp(GridLayout, Server):
+class MyApp(GridLayout, Client):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -109,11 +109,24 @@ class MyApp(GridLayout, Server):
         self.btn.background_normal = ''
         self.btn.background_color = ''
         self.btn.on_press = self.send
+        self.connected = False
 
         self.add_widget(self.btn)
+        start_new_thread(self.able_disable, ())
 
     def send(self):
-        self.server.send('1'.encode('utf-8'))
+        self.client.send('1'.encode('utf-8'))
+
+    def able_disable(self):
+
+        while True:
+            if self.connected:
+                msg = self.client.recv(64).decode('utf-8')
+                self.btn.disabled = True
+                self.btn.text = 'Wait...'
+                msg = self.client.recv(64).decode('utf-8')
+                self.btn.disabled = False
+                self.btn.text = 'Click me!'
 
 
 sm = ScreenManager()
@@ -128,6 +141,7 @@ def color_change():
     color = tuple(int(float(i)) for i in menu.colorin.text.split(' ')) + (1,)
 
     myapp.btn.background_color = color
+    myapp.connected = True
 
 
 if __name__ == '__main__':
