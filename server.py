@@ -8,55 +8,34 @@ import time
 import errno
 from details import *
 
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-
-active_connections = 6
-
-# Binding server to ip and port
-server.bind((ip, port))
-
-# Listens for 6 connections
-server.listen(active_connections)
-
-list_of_clients = []
-
 
 def clientthread(client):
 
     while True:
-        message = get_message(client)
+        try:
+            message = get_message(client)
 
-        if message:
-            message_to_send = f'<{client.addr[0]}> | Buzzed by {client.house}'
-            print(message_to_send)
-            # Send name of buzzed house to master client
-            client.broadcast_to_master()
-        else:
-            break
-    return 0
+            if message:
+                message_to_send = f'<{client.addr[0]}> | Buzzed by {client.house}'
+                print(message_to_send)
+                # Send name of buzzed house to master client
+                client.broadcast()
+        except:
+            print(f'<{client.addr[0]} | {client.house}> has been removed.')
+            remove(client)
+            return 0
 
 
 def get_message(client):
 
-    try:
-        message = client.socket.recv(64).decode('utf-8')
-        if message:
-            return message
-
-    except Exception as e:
-        print(f'<{client.addr[0]} | {client.house}> is  removed.')
-        remove(client)
-        return 0
+    message = client.socket.recv(64).decode('utf-8')
+    if message:
+        return message
 
 
 def house_gen():
     for i in ['Master', 'Scott', 'Shakespeare', 'Newton', 'Nobel']:
         yield i
-
-
-house = house_gen()
 
 
 def remove(connection):
@@ -71,26 +50,46 @@ class Client:
         self.addr = addr
         self.house = house
 
-    def broadcast_to_master(self):
+    def broadcast(self):
+
         list_of_clients[0].socket.send(self.house.encode('utf-8'))
 
+        for client in list_of_clients[1:]:
+            client.socket.send(f'BUZZED by {self.house}'.encode('utf-8'))
 
-while True:
 
-    # Accepting a client returns the socket of the client and its address
-    soc, add = server.accept()
-    client = Client(soc, add, next(house))
+if __name__ == '__main__':
+    house = house_gen()
 
-    # Consists of all the conected clients
-    list_of_clients.append(client)
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-    # prints the address of the user that just connected
-    print(
-        f"Connection with <{client.addr[0]} | {client.house}> has been established!")
+    active_connections = 6
 
-    # A thread for this user is then created
-    # This function is from the threading module
-    # threading.Thread(target=clientthread, args=client)
-    start_new_thread(clientthread, (client,))
-client_socket.close()
-server.close()
+    # Binding server to ip and port
+    server.bind((ip, port))
+
+    # Listens for 6 connections
+    server.listen(active_connections)
+
+    list_of_clients = []
+
+    while True:
+
+        # Accepting a client returns the socket of the client and its address
+        soc, add = server.accept()
+        client = Client(soc, add, next(house))
+
+        # Consists of all the conected clients
+        list_of_clients.append(client)
+
+        # prints the address of the user that just connected
+        print(
+            f"Connection with <{client.addr[0]} | {client.house}> has been established!")
+
+        # A thread for this user is then created
+        # This function is from the threading module
+        # threading.Thread(target=clientthread, args=client)
+        start_new_thread(clientthread, (client,))
+    client_socket.close()
+    server.close()

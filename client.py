@@ -3,6 +3,8 @@ import socket
 import sys
 import details
 
+from server import get_message
+
 import kivy
 from kivy.app import App
 from kivy.uix.button import Button
@@ -13,87 +15,10 @@ from kivy.lang import Builder
 from kivy.uix.screenmanager import ScreenManager, Screen
 
 
-Builder.load_string('''
-<Intro>
-    GridLayout:
-        cols:1
-        padding: [150, 150, 150, 150]
-
-        Label:
-            text: 'Welcome to the quiz program!'
-            font_size: 18
-
-        Label:
-            text: 'Before moving on make sure to be connected to the same network as the server.'
-            font_size: 14
-
-        Label:
-        Label:
-
-        Button:
-            text: 'Continue'
-            font_size: 14
-            on_press: root.proceed()
-
-<Menu>
-    GridLayout:
-        cols:1
-        padding: [120, 120, 120, 120]
-
-        Label:
-            text: 'Check server for IP and Port to connect to it.'
-            font_size: 14
-
-        GridLayout:
-            cols: 2
-            padding: [10, 10, 10, 10]
-
-
-            Label:
-                text: 'IP address: '
-
-            TextInput:
-                id: tip
-                text: root.ip
-
-            Label:
-                text: 'Port: '
-
-            TextInput:
-                id: tport
-                text: root.port
-
-            Label:
-                text: 'RGB: '
-
-            TextInput:
-                id: tcolor
-                text: '1 0 0'
-
-        Button:
-            text: 'Connect'
-            font_size: 14
-            on_press: root.connectt()
-
-        Label:
-            id: error
-            text: ''
-            font_size: 14
-            color: 1,0,0,1
-
-<MyApp>
-
-    GridLayout:
-        cols: 1
-
-        Button:
-            text: 'Click Me!'
-            background_normal: ''
-            background_color: 1, 0, 0, 1
-            font_size: 18
-            on_press: root.send()
-
-''')
+def page_to_screen(page, name):
+    screen = Screen(name=name)
+    screen.add_widget(page)
+    return screen
 
 
 class Main(App):
@@ -109,42 +34,100 @@ class Server():
     port = str(details.port)
 
 
-class Intro(Screen):
+class Intro(GridLayout):
 
-    def proceed(self):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.cols = 1
+        self.padding = [150, 150, 150, 150]
+
+        self.add_widget(Label(text='Welcome to the quiz program!'))
+        self.add_widget(Label(
+            text='Before proceeding make sure to be connected to the network of the server'))
+        self.add_widget(Button(text='Continue', on_press=self.proceed))
+
+    def proceed(self, instance):
         sm.current = 'menu'
 
 
-color = ''
+class Menu(GridLayout, Server):
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
-class Menu(Screen, Server):
-    def connectt(self):
+        self.cols = 1
+        self.padding = [120]*4
 
-        global color
+        self.add_widget(Label(
+            text='Obtain IP and port the srver is running on and enter the following details:'))
 
-        self.ip = self.ids.tip.text
-        self.port = int(self.ids.tport.text)
+        self.sub_grid = GridLayout()
+
+        self.sub_grid.cols = 2
+        self.sub_grid.padding = [10]*4
+
+        self.sub_grid.add_widget(Label(text='IP Address: '))
+        self.ipin = TextInput(text=self.ip)
+        self.sub_grid.add_widget(self.ipin)
+
+        self.sub_grid.add_widget(Label(text='Port Number: '))
+        self.portin = TextInput(text=self.port)
+        self.sub_grid.add_widget(self.portin)
+
+        self.sub_grid.add_widget(Label(text='Button Color: '))
+        self.colorin = TextInput(text='1 0 0')
+        self.sub_grid.add_widget(self.colorin)
+
+        self.add_widget(self.sub_grid)
+        self.add_widget(Button(text='Connect', on_press=self.connectt))
+
+        self.err = Label(text='', color=(1, 0, 0, 1))
+        self.add_widget(self.err)
+
+    def connectt(self, instance):
+
+        self.ip = self.ipin.text
+        self.port = int(self.portin.text)
         try:
             self.server.connect((self.ip, self.port))
             # self.server.send('1'.encode('utf-8')))))
             sm.current = 'myapp'
         except Exception as e:
-            self.ids.error.text = str(e)
+            self.err.text = str(e)
+        color_change()
 
-        color = tuple([float(i) for i in self.ids.tcolor.text.split(' ')] + [1])
 
+class MyApp(GridLayout, Server):
 
-class MyApp(Screen, Server):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.cols = 1
+
+        self.btn = Button()
+        self.btn.text = 'Click  Me!'
+        self.btn.background_normal = ''
+        self.btn.background_color = ''
+        self.btn.on_press = self.send
+
+        self.add_widget(self.btn)
 
     def send(self):
         self.server.send('1'.encode('utf-8'))
 
 
 sm = ScreenManager()
-sm.add_widget(Intro(name='intro'))
-sm.add_widget(Menu(name='menu'))
-sm.add_widget(MyApp(name='myapp'))
+sm.add_widget(page_to_screen(Intro(), 'intro'))
+menu = Menu()
+sm.add_widget(page_to_screen(menu, 'menu'))
+myapp = MyApp()
+sm.add_widget(page_to_screen(myapp, 'myapp'))
+
+
+def color_change():
+    color = tuple(int(float(i)) for i in menu.colorin.text.split(' ')) + (1,)
+
+    myapp.btn.background_color = color
 
 
 if __name__ == '__main__':
