@@ -107,7 +107,7 @@ class QrCodeScanner(GridLayout, Client):
         self.padding = [50, 50, 50, 50]
 
         self.add_widget(Label(text='Point to QR code on quiz master',
-                              font_name=HEAD, color=[0, 0, 0, 1], font_size=HEAD_size))
+                              font_name=HEAD, color=[0, 0, 0, 1], font_size=BUTTON_size))
 
         self.camera = ZBarCam()
         self.add_widget(self.camera)
