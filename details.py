@@ -1,2 +1,4 @@
-ip = '192.168.8.100'
+import socket
+
+ip = socket.gethostbyname(socket.gethostname())
 port = 1234
